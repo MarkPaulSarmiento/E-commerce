@@ -1,9 +1,9 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.3
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 23, 2026 at 12:21 PM
+-- Generation Time: Mar 24, 2026 at 10:23 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,64 @@ SET time_zone = "+00:00";
 --
 -- Database: `dyna_shop`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `orders`
+--
+
+CREATE TABLE `orders` (
+  `order_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `tax` decimal(10,2) NOT NULL,
+  `shipping` decimal(10,2) NOT NULL,
+  `total_amount` decimal(10,2) NOT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `reference_number` varchar(50) DEFAULT NULL,
+  `order_date` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`order_id`, `user_id`, `subtotal`, `tax`, `shipping`, `total_amount`, `payment_method`, `reference_number`, `order_date`) VALUES
+(1, 1, 1680.00, 168.00, 5.00, 1853.00, NULL, NULL, '2026-03-24 05:44:08'),
+(2, 1, 1008.00, 100.80, 5.00, 1113.80, NULL, NULL, '2026-03-24 05:49:27'),
+(0, 1, 1456.00, 145.60, 5.00, 1606.60, 'QR Code', NULL, '2026-03-24 08:15:19'),
+(0, 1, 1400.00, 140.00, 5.00, 1545.00, 'QR Code', NULL, '2026-03-24 08:24:58'),
+(0, 1, 1400.00, 140.00, 5.00, 1545.00, 'QR Code', 'DYNA-20260324-E4697F', '2026-03-24 09:14:38'),
+(0, 1, 1400.00, 140.00, 5.00, 1545.00, 'QR Code', 'DYNA-20260324-2B3D3D', '2026-03-24 09:16:34'),
+(0, 1, 1400.00, 140.00, 5.00, 1545.00, 'QR Code', 'DYNA-20260324-609ECD', '2026-03-24 09:18:46');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_items`
+--
+
+CREATE TABLE `order_items` (
+  `order_item_id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `price` decimal(10,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`order_item_id`, `order_id`, `product_id`, `quantity`, `price`) VALUES
+(1, 1, 1, 1, 1680.00),
+(2, 2, 3, 1, 1008.00),
+(0, 0, 11, 1, 1456.00),
+(0, 0, 2, 1, 1400.00),
+(0, 0, 2, 1, 1400.00),
+(0, 0, 2, 1, 1400.00),
+(0, 0, 2, 1, 1400.00);
 
 -- --------------------------------------------------------
 
@@ -102,7 +160,8 @@ INSERT INTO `user_sessions` (`session_id`, `user_id`, `session_token`, `login_ti
 (2, 1, 'd71bdf528d1f165329e78375bafecd5261d6932af50681fad2438396e5e74678', '2026-03-23 10:40:37', '2026-03-23 11:06:13', 0),
 (3, 1, '5628d6be2bc42e186928631fdfe62614c5dd05bfbabb20f26a8f6da6d2947372', '2026-03-23 11:12:22', '2026-03-23 11:12:28', 0),
 (4, 1, '5f4c680b7a485d4055dd6cef4e67c170007eeba8c7bcf1654fe2f822fb360f64', '2026-03-23 11:12:52', '2026-03-23 11:20:16', 0),
-(5, 1, 'f043c440a84a01a1cf8082993ff81ac19685a9a1004bba1ffa70e73e09bb8363', '2026-03-23 11:20:33', NULL, 1);
+(5, 1, 'f043c440a84a01a1cf8082993ff81ac19685a9a1004bba1ffa70e73e09bb8363', '2026-03-23 11:20:33', '2026-03-24 08:09:12', 0),
+(6, 1, 'af52651a75f99d0921958e35228ad577ef93ad1d91c6f814d7aa5e85dd9e3d42', '2026-03-24 08:09:12', NULL, 1);
 
 --
 -- Indexes for dumped tables
@@ -149,7 +208,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `session_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `session_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables

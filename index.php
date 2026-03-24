@@ -227,19 +227,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         <div class="register-link">
                             <p>Don't have an account? <a href="register.php">Create an account</a></p>
                         </div>
-                        
-                        <div class="divider">
-                            <span>Or login with</span>
-                        </div>
-                        
-                        <div class="social-login">
-                            <a href="#" class="social-btn google">
-                                <i class="fab fa-google"></i> Google
-                            </a>
-                            <a href="#" class="social-btn facebook">
-                                <i class="fab fa-facebook-f"></i> Facebook
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>

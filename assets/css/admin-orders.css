@@ -1,0 +1,413 @@
+/* Admin Orders Page Styles */
+
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.filter-btn {
+    padding: 8px 20px;
+    border-radius: 25px;
+    background: #f0f0f0;
+    color: #1e1e1e;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: #e75e8d;
+    color: #fff;
+}
+
+.filter-btn .badge {
+    background: rgba(0,0,0,0.1);
+    margin-left: 5px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-size: 11px;
+}
+
+.filter-btn.active .badge {
+    background: rgba(255,255,255,0.2);
+}
+
+.search-box {
+    margin-bottom: 30px;
+}
+
+.search-box input {
+    width: 300px;
+    height: 45px;
+    border-radius: 25px;
+    border: 1px solid #e0e0e0;
+    padding: 0 20px;
+    font-size: 14px;
+}
+
+.search-box button {
+    height: 45px;
+    padding: 0 25px;
+    border-radius: 25px;
+    background: #e75e8d;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.search-box button:hover {
+    background: #c4456b;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-approve {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-approve:hover {
+    background: #219a52;
+    color: #fff;
+}
+
+.btn-ship {
+    background: #3498db;
+    color: #fff;
+}
+
+.btn-ship:hover {
+    background: #2980b9;
+    color: #fff;
+}
+
+.btn-decline {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-decline:hover {
+    background: #c0392b;
+    color: #fff;
+}
+
+.btn-complete {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-complete:hover {
+    background: #219a52;
+    color: #fff;
+}
+
+.alert-message {
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.order-details-link {
+    color: #e75e8d;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.order-details-link:hover {
+    color: #c4456b;
+    text-decoration: underline;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 25px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.close-modal {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.close-modal:hover {
+    background: #c0392b;
+}
+
+.confirm-ship {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.confirm-ship:hover {
+    background: #219a52;
+}
+
+.status-shipped {
+    background: #3498db;
+    color: #fff;
+}
+
+.order-summary {
+    font-size: 12px;
+    color: #7a7a7a;
+    margin-top: 5px;
+}
+
+.payment-method {
+    font-size: 12px;
+    color: #7a7a7a;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .filter-buttons {
+        gap: 8px;
+    }
+    
+    .filter-btn {
+        padding: 6px 15px;
+        font-size: 12px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .search-box button {
+        width: 100%;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .modal-content {
+        margin: 30% auto;
+        padding: 20px;
+    }
+}
+/* Additional styles for tracking number display */
+.tracking-info {
+    font-size: 12px;
+    color: #7a7a7a;
+    margin-top: 5px;
+}
+
+.tracking-number-display {
+    background: #f8f9fa;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-family: monospace;
+    font-size: 11px;
+    display: inline-block;
+}
+
+.status-completed {
+    background: #27ae60;
+    color: #fff;
+}
+
+.note-text {
+    font-size: 11px;
+    color: #888;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Decline Modal Styles */
+.decline-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.decline-modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 450px;
+    position: relative;
+    animation: slideDown 0.3s ease;
+}
+
+.decline-modal-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.decline-modal-header i {
+    font-size: 60px;
+    color: #e74c3c;
+    margin-bottom: 15px;
+}
+
+.decline-modal-header h3 {
+    font-size: 24px;
+    color: #1e1e1e;
+    margin-bottom: 10px;
+}
+
+.decline-modal-header p {
+    color: #7a7a7a;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.decline-modal-body {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.decline-order-details {
+    font-size: 14px;
+}
+
+.decline-order-details strong {
+    color: #e75e8d;
+}
+
+.decline-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.decline-cancel-btn {
+    background: #95a5a6;
+    color: #fff;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.decline-cancel-btn:hover {
+    background: #7f8c8d;
+}
+
+.decline-confirm-btn {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.decline-confirm-btn:hover {
+    background: #c0392b;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .decline-modal-content {
+        margin: 30% auto;
+        padding: 20px;
+    }
+    
+    .decline-modal-buttons {
+        flex-direction: column;
+    }
+    
+    .decline-cancel-btn,
+    .decline-confirm-btn {
+        width: 100%;
+    }
+}

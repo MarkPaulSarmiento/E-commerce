@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="assets/css/owl.css">
   <link rel="stylesheet" href="assets/css/animate.css">
   <link rel="stylesheet" href="https://unpkg.com/swiper@7/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="assets/css/admin.css">
 
   <style>
     .btn-gmail {
@@ -73,6 +74,8 @@
             <ul class="nav">
               <li><a href="home.php">Home</a></li>
               <li><a href="shop_page1.php">Our Shop</a></li>
+              <li><a href="my_orders.php">My Orders</a></li>
+              <li><a href="user-profile.php">My Profile</a></li>
               <li><a href="contact.php" class="active">Contact Us</a></li>
               <li><a href="cart.php">Cart</a></li>
               <li><a href="logout.php">Logout</a></li>
@@ -88,7 +91,7 @@
   </header>
   <!-- ***** Header Area End ***** -->
 
-  <div class="page-heading header-text">
+  <div class="page-heading-1 header-text">
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
@@ -112,7 +115,7 @@
             <ul>
               <li><span>Address</span> Oraan East, Manaoag Pangasinan, Philippines</li>
               <li><span>Phone</span> 0962 095 9102</li>
-              <li><span>Email</span> mrkpulsrmnt12@gmail.com</li>
+              <li><span>Email</span> dynamastershop@gmail.com</li>
             </ul>
           </div>
         </div>

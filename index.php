@@ -11,30 +11,51 @@ if ($conn->connect_error) {
 
 // Check if user is already logged in with valid session
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_SESSION['session_token'])) {
-    // Verify session token is still active in database
-    $check_stmt = $conn->prepare("SELECT is_active, logout_time FROM user_sessions WHERE session_token = ? AND user_id = ?");
-    $check_stmt->bind_param("si", $_SESSION['session_token'], $_SESSION['user_id']);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
-    
-    if ($check_result->num_rows > 0) {
-        $session_data = $check_result->fetch_assoc();
-        // Check if session is active (is_active = 1) and logout_time is NULL
-        if ($session_data['is_active'] == 1 && is_null($session_data['logout_time'])) {
-            // Session is still valid, redirect to home page
+    // Check if it's admin or regular user
+    if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin') {
+        // Verify admin session using admin_sessions table
+        $check_stmt = $conn->prepare("SELECT is_active FROM admin_sessions WHERE session_token = ? AND admin_id = ? AND is_active = 1");
+        $check_stmt->bind_param("si", $_SESSION['session_token'], $_SESSION['user_id']);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
+        
+        if ($check_result->num_rows > 0) {
+            // Admin session is valid, redirect to admin dashboard
             $check_stmt->close();
             $conn->close();
-            header("Location: home.php");
+            header("Location: admin_dashboard.php");
             exit();
         } else {
             // Session is no longer active, destroy it
             session_destroy();
         }
+        $check_stmt->close();
     } else {
-        // Session token not found, destroy session
-        session_destroy();
+        // Verify regular user session
+        $check_stmt = $conn->prepare("SELECT is_active, logout_time FROM user_sessions WHERE session_token = ? AND user_id = ?");
+        $check_stmt->bind_param("si", $_SESSION['session_token'], $_SESSION['user_id']);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
+        
+        if ($check_result->num_rows > 0) {
+            $session_data = $check_result->fetch_assoc();
+            // Check if session is active (is_active = 1) and logout_time is NULL
+            if ($session_data['is_active'] == 1 && is_null($session_data['logout_time'])) {
+                // Session is still valid, redirect to home page
+                $check_stmt->close();
+                $conn->close();
+                header("Location: home.php");
+                exit();
+            } else {
+                // Session is no longer active, destroy it
+                session_destroy();
+            }
+        } else {
+            // Session token not found, destroy session
+            session_destroy();
+        }
+        $check_stmt->close();
     }
-    $check_stmt->close();
 }
 
 $error = '';
@@ -48,39 +69,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     if (empty($username) || empty($password)) {
         $error = "Please enter both username and password";
     } else {
-        // Get user from database
-        $stmt = $conn->prepare("SELECT user_id, username, password_hash FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        // First, check if it's an admin user
+        // CHANGED: Using 'password' instead of 'password_hash' for plain text storage
+        $admin_stmt = $conn->prepare("SELECT admin_id, username, email, password, full_name, role, is_active FROM admin_users WHERE username = ? AND is_active = 1");
+        $admin_stmt->bind_param("s", $username);
+        $admin_stmt->execute();
+        $admin_result = $admin_stmt->get_result();
         
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
+        if ($admin_result->num_rows === 1) {
+            // Admin user found
+            $admin = $admin_result->fetch_assoc();
             
-            // Verify password
-            if (password_verify($password, $user['password_hash'])) {
-                // First, deactivate any existing active sessions for this user
-                $deactivate_stmt = $conn->prepare("UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE user_id = ? AND is_active = 1");
-                $deactivate_stmt->bind_param("i", $user['user_id']);
+            // CHANGED: Direct password comparison (plain text) for testing
+            if ($password === $admin['password']) {
+                // First, deactivate any existing active sessions for this admin
+                $deactivate_stmt = $conn->prepare("UPDATE admin_sessions SET is_active = 0, logout_time = NOW() WHERE admin_id = ? AND is_active = 1");
+                $deactivate_stmt->bind_param("i", $admin['admin_id']);
                 $deactivate_stmt->execute();
                 $deactivate_stmt->close();
                 
                 // Generate new session token
                 $session_token = bin2hex(random_bytes(32));
                 
-                // Store new session in database
-                $insert_session = $conn->prepare("INSERT INTO user_sessions (user_id, session_token, is_active) VALUES (?, ?, 1)");
-                $insert_session->bind_param("is", $user['user_id'], $session_token);
+                // Store new admin session in admin_sessions table
+                $insert_session = $conn->prepare("INSERT INTO admin_sessions (admin_id, session_token, is_active, login_time) VALUES (?, ?, 1, NOW())");
+                $insert_session->bind_param("is", $admin['admin_id'], $session_token);
                 
                 if ($insert_session->execute()) {
-                    // Set session variables
-                    $_SESSION['user_id'] = $user['user_id'];
-                    $_SESSION['username'] = $user['username'];
+                    // Set session variables for admin
+                    $_SESSION['user_id'] = $admin['admin_id'];
+                    $_SESSION['username'] = $admin['username'];
+                    $_SESSION['full_name'] = $admin['full_name'];
+                    $_SESSION['user_type'] = 'admin';
+                    $_SESSION['admin_role'] = $admin['role'];
                     $_SESSION['session_token'] = $session_token;
                     $_SESSION['logged_in'] = true;
                     
-                    // Redirect to home page after login
-                    header("Location: home.php");
+                    // Update last login time in admin_users
+                    $update_login = $conn->prepare("UPDATE admin_users SET last_login = NOW() WHERE admin_id = ?");
+                    $update_login->bind_param("i", $admin['admin_id']);
+                    $update_login->execute();
+                    $update_login->close();
+                    
+                    // Redirect to admin dashboard
+                    header("Location: admin_dashboard.php");
                     exit();
                 } else {
                     $error = "Login failed. Please try again.";
@@ -90,9 +122,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 $error = "Invalid username or password";
             }
         } else {
-            $error = "Invalid username or password";
+            // Check regular user (keeping password_hash for regular users)
+            $stmt = $conn->prepare("SELECT user_id, username, password_hash FROM users WHERE username = ?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows === 1) {
+                $user = $result->fetch_assoc();
+                
+                // Verify password using password_verify for regular users
+                if (password_verify($password, $user['password_hash'])) {
+                    // First, deactivate any existing active sessions for this user
+                    $deactivate_stmt = $conn->prepare("UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE user_id = ? AND is_active = 1");
+                    $deactivate_stmt->bind_param("i", $user['user_id']);
+                    $deactivate_stmt->execute();
+                    $deactivate_stmt->close();
+                    
+                    // Generate new session token
+                    $session_token = bin2hex(random_bytes(32));
+                    
+                    // Store new session in user_sessions table
+                    $insert_session = $conn->prepare("INSERT INTO user_sessions (user_id, session_token, is_active, login_time) VALUES (?, ?, 1, NOW())");
+                    $insert_session->bind_param("is", $user['user_id'], $session_token);
+                    
+                    if ($insert_session->execute()) {
+                        // Set session variables for regular user
+                        $_SESSION['user_id'] = $user['user_id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['user_type'] = 'user';
+                        $_SESSION['session_token'] = $session_token;
+                        $_SESSION['logged_in'] = true;
+                        
+                        // Redirect to home page
+                        header("Location: home.php");
+                        exit();
+                    } else {
+                        $error = "Login failed. Please try again.";
+                    }
+                    $insert_session->close();
+                } else {
+                    $error = "Invalid username or password";
+                }
+            } else {
+                $error = "Invalid username or password";
+            }
+            $stmt->close();
         }
-        $stmt->close();
+        $admin_stmt->close();
     }
 }
 ?>
@@ -119,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     
     <!-- Custom Login CSS -->
     <link rel="stylesheet" href="assets/css/login.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
 
 </head>
 
@@ -164,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     </header>
     <!-- ***** Header Area End ***** -->
 
-    <div class="page-heading header-text">
+    <div class="page-heading-1 header-text">
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
@@ -227,6 +305,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         <div class="register-link">
                             <p>Don't have an account? <a href="register.php">Create an account</a></p>
                         </div>
+                        
+                        <!-- Updated Admin Login Info -->
+                        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center; font-size: 12px; color: #6c757d;">
+                            <i class="fa fa-shield-alt"></i> Admin Login: admin / Mspp1414!
+                        </div>
                     </div>
                 </div>
             </div>
@@ -252,6 +335,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     
     <!-- Custom Login JS -->
     <script src="assets/js/login.js"></script>
+    
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.querySelector('.toggle-password i');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.classList.remove('fa-eye');
+                toggleBtn.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.classList.remove('fa-eye-slash');
+                toggleBtn.classList.add('fa-eye');
+            }
+        }
+    </script>
 
 </body>
 

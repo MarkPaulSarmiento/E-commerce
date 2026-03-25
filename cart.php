@@ -19,12 +19,23 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Fetch user's saved address (if any)
+$user_address = '';
+$addr_stmt = $conn->prepare("SELECT address FROM users WHERE user_id = ?");
+$addr_stmt->bind_param("i", $user_id);
+$addr_stmt->execute();
+$addr_result = $addr_stmt->get_result();
+if ($addr_row = $addr_result->fetch_assoc()) {
+    $user_address = $addr_row['address'] ?? '';
+}
+$addr_stmt->close();
+
 // Initialize cart if not exists
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-$receipt_data = null; 
+$receipt_data = null;
 
 // Check if payment was successful and receipt data exists
 if (isset($_GET['payment_success']) && isset($_SESSION['receipt_data'])) {
@@ -75,14 +86,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action == 'qr_checkout' && isset($_POST['selected_ids'])) {
         $selected_ids = json_decode($_POST['selected_ids'], true);
         $payment_method = 'QR Code';
-        
+        $shipping_address = isset($_POST['shipping_address']) ? trim($_POST['shipping_address']) : '';
+
+        // Basic validation
+        if (empty($shipping_address)) {
+            echo "<script>alert('Please enter a shipping address.'); window.history.back();</script>";
+            exit();
+        }
+
         // Store checkout data in session for QR page
         $_SESSION['pending_checkout'] = [
-            'selected_ids' => $selected_ids,
-            'payment_method' => $payment_method,
-            'timestamp' => time()
+            'selected_ids'      => $selected_ids,
+            'payment_method'    => $payment_method,
+            'shipping_address'  => $shipping_address,
+            'timestamp'         => time()
         ];
-        
+
         // Redirect to QR payment page
         header("Location: qr_payment.php");
         exit();
@@ -102,8 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <link rel="stylesheet" href="assets/css/owl.css">
     <link rel="stylesheet" href="assets/css/animate.css">
     <link rel="stylesheet" href="https://unpkg.com/swiper@7/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/admin.css">
 
     <style>
+        /* ===== Cart Page Styles ===== */
         .cart-page { padding: 80px 0; }
         .cart-table { background: #fff; border-radius: 23px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
         .cart-table th { background: #ee626b; color: #fff; padding: 15px 20px; }
@@ -131,12 +152,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         .continue-shopping { background: #ee626b; color: #fff; padding: 12px 30px; border-radius: 25px; display: inline-block; margin-top: 20px; text-decoration: none; transition: all 0.3s; }
         .notification { position: fixed; top: 20px; right: 20px; background: #ee626b; color: #fff; padding: 12px 24px; border-radius: 25px; z-index: 9999; animation: slideIn 0.3s; }
 
+        /* Address Section */
+        .address-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+        }
+        .address-section label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .address-section textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e5e5e5;
+            border-radius: 15px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        /* Receipt Section */
         .receipt-wrapper { background: #fff; padding: 40px; border-radius: 23px; box-shadow: 0 0 20px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; }
         .receipt-header { text-align: center; border-bottom: 2px dashed #ddd; padding-bottom: 20px; margin-bottom: 20px; }
         .receipt-header h2 { color: #ee626b; font-weight: 700; }
         .receipt-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
         .grand-total { font-size: 22px !important; font-weight: 700; color: #ee626b; margin-top: 15px; border-top: 2px solid #ddd; padding-top: 15px; }
         .success-icon { font-size: 60px; color: #28a745; margin-bottom: 20px; }
+
+        /* Custom Modal */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        .confirm-modal-content {
+            background: #fff;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.3s ease;
+        }
+        .confirm-modal-content h4 {
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .confirm-modal-content p {
+            margin-bottom: 25px;
+            color: #666;
+        }
+        .confirm-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .confirm-modal-buttons button {
+            padding: 8px 20px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .confirm-cancel {
+            background: #ddd;
+            color: #333;
+        }
+        .confirm-cancel:hover {
+            background: #ccc;
+        }
+        .confirm-ok {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .confirm-ok:hover {
+            background: #c0392b;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @media print {
@@ -158,9 +270,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <ul class="nav">
                             <li><a href="home.php">Home</a></li>
                             <li><a href="shop_page1.php">Our Shop</a></li>
+                            <li><a href="my_orders.php">My Orders</a></li>
+                            <li><a href="user-profile.php">My Profile</a></li>
                             <li><a href="contact.php">Contact Us</a></li>
                             <li><a href="cart.php" class="active">Cart</a></li>
-                            <li><a href="index.php">Logout</a></li>
+                            <li><a href="logout.php">Logout</a></li>
                         </ul>
                     </nav>
                 </div>
@@ -168,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </header>
 
-    <div class="page-heading header-text">
+    <div class="page-heading-1 header-text">
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
@@ -243,14 +357,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <div class="cart-table">
                                 <table class="table">
                                     <thead>
-                                        32<th class="checkbox-cell"><input type="checkbox" id="selectAll" class="custom-checkbox" checked></th>
-                                            <th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th></th>
-                                        </tr>
+                                         <th class="checkbox-cell"><input type="checkbox" id="selectAll" class="custom-checkbox" checked></th>
+                                         <th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th></th>
                                     </thead>
                                     <tbody id="cart-items">
                                         <?php $subtotal = 0; foreach ($_SESSION['cart'] as $item): $item_total = $item['price'] * $item['quantity']; $subtotal += $item_total; ?>
                                             <tr id="item-<?php echo $item['id']; ?>">
-                                                <td class="checkbox-cell"><input type="checkbox" class="item-select custom-checkbox" value="<?php echo $item['id']; ?>" checked> </td>
+                                                <td class="checkbox-cell"><input type="checkbox" class="item-select custom-checkbox" value="<?php echo $item['id']; ?>" checked>   </td>
                                                 <td>
                                                     <div class="cart-product-img"><img src="<?php echo $item['image']; ?>"></div>
                                                     <span class="cart-product-title"><?php echo htmlspecialchars($item['name']); ?></span>
@@ -261,7 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                                     <button class="update-btn" onclick="updateItem(<?php echo $item['id']; ?>, <?php echo $item['price']; ?>)">Update</button>
                                                 </td>
                                                 <td class="cart-price" id="total-<?php echo $item['id']; ?>">₱<?php echo number_format($item_total, 2); ?></td>
-                                                <td><button class="cart-remove" onclick="removeItem(<?php echo $item['id']; ?>)"><i class="fa fa-trash"></i></button></td>
+                                                <td><button class="cart-remove" onclick="openConfirmModal(<?php echo $item['id']; ?>)"><i class="fa fa-trash"></i></button></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -276,6 +389,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         <div class="summary-item"><span>Tax (10%)</span><span id="tax">₱<?php echo number_format($subtotal * 0.1, 2); ?></span></div>
                                         <div class="summary-item"><span>Shipping</span><span id="shipping">₱5.00</span></div>
                                         <div class="summary-total"><span>Total</span><span id="total">₱<?php echo number_format($subtotal * 1.1 + 5, 2); ?></span></div>
+                                        
+                                        <!-- Shipping Address Section -->
+                                        <div class="address-section">
+                                            <label for="shipping_address">Shipping Address <span class="text-danger">*</span></label>
+                                            <textarea id="shipping_address" rows="3" placeholder="Street, City, Province, Postal Code" required><?php echo htmlspecialchars($user_address); ?></textarea>
+                                            <small class="text-muted">Please provide a complete address for delivery.</small>
+                                        </div>
                                         
                                         <button onclick="proceedToPayment()" class="checkout-btn" id="proceedBtn">
                                             <span class="btn-text">Proceed to Payment (QR Code)</span>
@@ -292,14 +412,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </div>
 
+    <!-- Custom Modal for Remove Confirmation -->
+    <div id="removeConfirmModal" class="confirm-modal">
+        <div class="confirm-modal-content">
+            <h4><i class="fa fa-trash"></i> Remove Item</h4>
+            <p>Are you sure you want to remove this item from your cart?</p>
+            <div class="confirm-modal-buttons">
+                <button class="confirm-cancel" onclick="closeConfirmModal()">Cancel</button>
+                <button class="confirm-ok" id="confirmRemoveBtn">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="col-lg-12">
+                <p>Copyright © 2024 DYNA Shop. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     
     <script>
         let selectedItemsList = [];
-        
-        function showMessage(msg) {
-            let div = $('<div class="notification"><i class="fa fa-check-circle"></i> '+msg+'</div>');
+        let pendingRemoveId = null;
+
+        function showMessage(msg, isError = false) {
+            let bgColor = isError ? '#e74c3c' : '#ee626b';
+            let icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+            let div = $('<div class="notification" style="background:'+bgColor+';"><i class="fa '+icon+'"></i> '+msg+'</div>');
             $('body').append(div);
             setTimeout(() => div.fadeOut(500, function(){ $(this).remove(); }), 3000);
         }
@@ -337,13 +480,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         function removeItem(id) {
-            if(confirm('Remove item?')) {
-                $.post('cart.php', {action: 'remove', id: id}, function() {
-                    $('#item-' + id).remove();
-                    recalculateSelectedTotals();
-                    if($('.item-select').length === 0) location.reload();
-                }, 'json');
-            }
+            $.post('cart.php', {action: 'remove', id: id}, function() {
+                $('#item-' + id).remove();
+                recalculateSelectedTotals();
+                if($('.item-select').length === 0) location.reload();
+            }, 'json');
         }
 
         function clearCart() {
@@ -351,7 +492,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $.post('cart.php', {action: 'clear'}, function() { location.reload(); }, 'json');
             }
         }
-        
+
+        // Modal functions
+        function openConfirmModal(itemId) {
+            pendingRemoveId = itemId;
+            $('#removeConfirmModal').css('display', 'flex');
+        }
+        function closeConfirmModal() {
+            $('#removeConfirmModal').hide();
+            pendingRemoveId = null;
+        }
+        function confirmRemoveItem() {
+            if (pendingRemoveId) {
+                removeItem(pendingRemoveId);
+                closeConfirmModal();
+            }
+        }
+        $('#confirmRemoveBtn').on('click', confirmRemoveItem);
+
         function proceedToPayment() {
             selectedItemsList = [];
             $('.item-select:checked').each(function() { 
@@ -359,14 +517,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             });
             
             if (selectedItemsList.length === 0) {
-                alert('Please select at least one item to checkout.');
+                showMessage('Please select at least one item to checkout.', true);
                 return;
             }
             
-            // Directly redirect to QR payment page
+            // Get shipping address
+            const address = $('#shipping_address').val().trim();
+            if (!address) {
+                showMessage('Please enter a shipping address.', true);
+                $('#shipping_address').focus();
+                return;
+            }
+            
+            // Create a hidden form and submit
             let form = $('<form method="POST" action="cart.php"></form>');
             form.append('<input type="hidden" name="action" value="qr_checkout">');
             form.append('<input type="hidden" name="selected_ids" value=\'' + JSON.stringify(selectedItemsList) + '\'>');
+            form.append('<input type="hidden" name="shipping_address" value=\'' + encodeURIComponent(address) + '\'>');
             $('body').append(form);
             form.submit();
         }

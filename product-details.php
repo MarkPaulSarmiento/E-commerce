@@ -188,6 +188,8 @@ unset($_SESSION['cart_message']);
                         <ul class="nav">
                             <li><a href="home.php">Home</a></li>
                             <li><a href="shop_page1.php">Our Shop</a></li>
+                            <li><a href="my_orders.php">My Orders</a></li>
+                            <li><a href="user-profile.php">My Profile</a></li>
                             <li><a href="contact.php">Contact Us</a></li>
                             <li><a href="cart.php">Cart</a></li>
                             <li><a href="logout.php">Logout</a></li>

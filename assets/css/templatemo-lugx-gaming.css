@@ -1157,6 +1157,16 @@ Page Header Style
   text-align: center;
 }
 
+.page-heading-1 {
+  background-image: url(../images/page-heading-bg.jpg);
+  border-radius: 0px 0px 150px 150px;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+  padding: 150px 0px 50px 0px;
+  text-align: center;
+}
+
 .page-heading span {
   display: inline-block;
   font-size: 16px;

@@ -121,10 +121,12 @@ $categories_result = $conn->query($categories_sql);
                         <ul class="nav">
                             <li><a href="home.php" class="active">Home</a></li>
                             <li><a href="shop_page1.php">Our Shop</a></li>
+                            <li><a href="my_orders.php">My Orders</a></li>
+                            <li><a href="user-profile.php">My Profile</a></li>
                             <li><a href="contact.php">Contact Us</a></li>
                             <li><a href="cart.php">Cart</a></li>
                             <li><a href="logout.php">Logout</a></li>
-                        </ul> 
+                        </ul>
                         <a class='menu-trigger'>
                             <span>Menu</span>
                         </a>
@@ -144,12 +146,6 @@ $categories_result = $conn->query($categories_sql);
                         <h6>DYNA Shop</h6>
                         <h2>BEST CLOTHING EVER!</h2>
                         <p>DYNA Shop is a modern clothing e‑commerce platform designed to bring style, comfort, and affordability together. With a wide range of fashion essentials—from everyday wear to statement pieces—it offers customers a seamless shopping experience through an intuitive interface, secure payment options, and fast delivery services. DYNA Shop emphasizes quality and trend‑forward designs, making it a go‑to destination for individuals who want to express themselves through fashion while enjoying the convenience of online shopping</p>
-                        <div class="search-input">
-                            <form id="search" action="#">
-                                <input type="text" placeholder="Type Something" id='searchText' name="searchKeyword" onkeypress="handle" />
-                                <button role="button">Search Now</button>
-                            </form>
-                        </div>
                     </div>
                 </div>
                 <div class="col-lg-4 offset-lg-2">

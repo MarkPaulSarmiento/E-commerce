@@ -108,6 +108,7 @@ $initial_result = $conn->query($initial_sql);
     <link rel="stylesheet" href="assets/css/owl.css">
     <link rel="stylesheet" href="assets/css/animate.css">
     <link rel="stylesheet" href="https://unpkg.com/swiper@7/swiper-bundle.min.css"/>
+    <link rel="stylesheet" href="assets/css/admin.css">
 
 </head>
 
@@ -142,10 +143,12 @@ $initial_result = $conn->query($initial_sql);
                             <ul class="nav">
                                 <li><a href="home.php">Home</a></li>
                                 <li><a href="shop_page1.php" class="active">Our Shop</a></li>
+                                <li><a href="my_orders.php">My Orders</a></li>
+                                <li><a href="user-profile.php">My Profile</a></li>
                                 <li><a href="contact.php">Contact Us</a></li>
                                 <li><a href="cart.php">Cart</a></li>
                                 <li><a href="logout.php">Logout</a></li>
-                            </ul> 
+                            </ul>
                             <a class='menu-trigger'>
                                 <span>Menu</span>
                             </a>
@@ -157,7 +160,7 @@ $initial_result = $conn->query($initial_sql);
         </header>
         <!-- ***** Header Area End ***** -->
 
-        <div class="page-heading header-text">
+        <div class="page-heading-1 header-text">
             <div class="container">
                 <div class="row">
                     <div class="col-lg-12">

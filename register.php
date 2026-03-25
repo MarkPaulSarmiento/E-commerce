@@ -21,17 +21,20 @@ $success = '';
 // Handle Registration
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
+    $email    = trim($_POST['email']);
+    $address  = trim($_POST['address'] ?? '');
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
     
     // Basic validation
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-        $error = "Please fill in all fields.";
+        $error = "Please fill in all required fields.";
     } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match.";
     } elseif (strlen($password) < 6) {
         $error = "Password must be at least 6 characters long.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address.";
     } else {
         // Check if username or email already exists
         $check_stmt = $conn->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
@@ -45,16 +48,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
             // Hash the password securely
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
-            // Insert new user into database
-            $insert_stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
-            $insert_stmt->bind_param("sss", $username, $email, $password_hash);
+            // Start transaction
+            $conn->begin_transaction();
+            
+            // Insert new user into database (including address)
+            $insert_stmt = $conn->prepare("INSERT INTO users (username, email, address, password_hash) VALUES (?, ?, ?, ?)");
+            $insert_stmt->bind_param("ssss", $username, $email, $address, $password_hash);
             
             if ($insert_stmt->execute()) {
-                $success = "Registration successful! You can now login.";
-                // Clear fields after success
-                $username = '';
-                $email = '';
+                $user_id = $conn->insert_id;
+                
+                // Send welcome email
+                $subject = "Welcome to DYNA Shop!";
+                $message = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Poppins', Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 10px; }
+                        .header { background: #ee626b; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                        .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; }
+                        .btn { background: #ee626b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+                        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2>Welcome to DYNA Shop!</h2>
+                        </div>
+                        <div class='content'>
+                            <h3>Hello " . htmlspecialchars($username) . ",</h3>
+                            <p>Thank you for registering at DYNA Shop. You can now log in to your account and start shopping!</p>
+                            <p>Your registered email is: <strong>" . htmlspecialchars($email) . "</strong></p>
+                            <p>If you have any questions, feel free to contact our support team.</p>
+                            <p style='text-align: center; margin-top: 30px;'>
+                                <a href='http://localhost/E-commerce/index.php' class='btn'>Login Now</a>
+                            </p>
+                        </div>
+                        <div class='footer'>
+                            <p>© 2024 DYNA Shop. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+                
+                $headers = "MIME-Version: 1.0\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8\r\n";
+                $headers .= "From: DYNA Shop <noreply@dyna-shop.com>\r\n";
+                $headers .= "Reply-To: dynamastershop@gmail.com\r\n";
+                
+                $email_sent = mail($email, $subject, $message, $headers);
+                
+                if ($email_sent) {
+                    // Commit transaction
+                    $conn->commit();
+                    $success = "Registration successful! A welcome email has been sent to your email address. You can now login.";
+                    // Clear fields after success
+                    header("Location: index.php?registered=1");
+                    exit();
+                } else {
+                    // Rollback insertion
+                    $conn->rollback();
+                    $error = "Unable to send verification email. Please check that your email address is correct and try again.";
+                }
             } else {
+                $conn->rollback();
                 $error = "Registration failed. Please try again.";
             }
             $insert_stmt->close();
@@ -98,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
             </div>
         </div>
     </div>
+
     <header class="header-area header-sticky">
         <div class="container">
             <div class="row">
@@ -113,11 +173,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                         <a class='menu-trigger'>
                             <span>Menu</span>
                         </a>
-                        </nav>
+                    </nav>
                 </div>
             </div>
         </div>
     </header>
+
     <div class="page-heading header-text">
         <div class="container">
             <div class="row">
@@ -161,11 +222,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                                 <label for="email">Email Address</label>
                                 <input type="email" id="email" name="email" placeholder="Enter your email" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required>
                             </div>
+
+                            <div class="form-group">
+                                <label for="address">Shipping Address <small>(Optional)</small></label>
+                                <input type="text" id="address" name="address" placeholder="Street, City, Province, Postal Code" value="<?php echo isset($address) ? htmlspecialchars($address) : ''; ?>">
+                            </div>
                             
                             <div class="form-group">
                                 <label for="password">Password</label>
                                 <div class="password-wrapper">
-                                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                                    <input type="password" id="password" name="password" placeholder="Create a password (min. 6 characters)" required>
                                     <button type="button" class="toggle-password" onclick="togglePassword('password')">
                                         <i class="fa fa-eye"></i>
                                     </button>
@@ -186,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                         </form>
                         
                         <div class="register-link">
-                            <p>Already have an account? <a href="login.php">Login here</a></p>
+                            <p>Already have an account? <a href="index.php">Login here</a></p>
                         </div>
                     </div>
                 </div>
@@ -210,20 +276,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     <script src="assets/js/custom.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script src="assets/js/login.js"></script>
-    
     <script>
-        // Updated toggle function to handle multiple password fields
         function togglePassword(fieldId) {
-            const passwordField = document.getElementById(fieldId);
-            const icon = passwordField.nextElementSibling.querySelector('i');
-            
-            if (passwordField.type === "password") {
-                passwordField.type = "text";
+            const field = document.getElementById(fieldId);
+            const icon = field.nextElementSibling.querySelector('i');
+            if (field.type === "password") {
+                field.type = "text";
                 icon.classList.remove('fa-eye');
                 icon.classList.add('fa-eye-slash');
             } else {
-                passwordField.type = "password";
+                field.type = "password";
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
